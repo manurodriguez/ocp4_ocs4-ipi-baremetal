@@ -1,0 +1,38 @@
+---
+- name: Create the master bonding machineconfigs
+  template:
+    src: "11_master_lacp-bond-jumbo-vlan.j2"
+    dest: "{{ dir }}/11_master_lacp-bond-jumbo-vlan.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0640'
+  tags: build-baremetal-mc-templates
+
+- name: Create the worker bonding machineconfigs
+  template:
+    src: "11_worker_lacp-bond-jumbo-vlan.j2"
+    dest: "{{ dir }}/11_worker_lacp-bond-jumbo-vlan.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0640'
+  tags: build-baremetal-mc-templates
+
+- name: Copy the master bonding machineconfigs to {{ dir }}/openshift directory
+  copy:
+    src: "{{ dir }}/11_master_lacp-bond-jumbo-vlan.yaml"
+    dest: "{{ dir }}/openshift/11_master_lacp-bond-jumbo-vlan.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0640'
+    remote_src: yes
+  tags: build-baremetal-mc-templates
+
+- name: Copy the worker bonding machineconfigs to {{ dir }}/openshift directory
+  copy:
+    src: "{{ dir }}/11_worker_lacp-bond-jumbo-vlan.yaml"
+    dest: "{{ dir }}/openshift/11_worker_lacp-bond-jumbo-vlan.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0640'
+    remote_src: yes
+  tags: build-baremetal-mc-templates

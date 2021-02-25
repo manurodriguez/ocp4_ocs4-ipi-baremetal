@@ -1,0 +1,30 @@
+{% for host in groups['workers_post'] %}
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: {{ hostvars[host]['inventory_hostname'] }}
+  namespace: openshift-machine-api
+spec:
+  bmc:
+{% if redfish_hp_enabled|bool %}
+    address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/System.Embedded.1
+{% elif redfish_dell_enabled|bool %}
+    address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/1
+{% else %}
+    address: ipmi://{{ hostvars[host]['ipmi_address']|ipwrap }}:{{ hostvars[host]['ipmi_port']|default(623) }}
+{% endif %}
+    disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+    credentialsName: {{ hostvars[host]['inventory_hostname'] }}-bmc-secret
+  bootMACAddress: "{{ hostvars[host]['provision_mac'] }}"
+{% if 'hardware_profile' in hostvars[host] %}
+  hardwareProfile: {{ hostvars[host]['hardware_profile'] }}
+{% else %}
+  hardwareProfile: default
+{% endif %}
+  online: true
+{% if 'root_device_hint' in hostvars[host] and 'root_device_hint_value' in hostvars[host] and hostvars[host]['root_device_hint'] in roothint_list %}
+  rootDeviceHints:
+    {{ hostvars[host]['root_device_hint'] }}: {{ hostvars[host]['root_device_hint_value'] }}
+{% endif %}
+{% endfor %}

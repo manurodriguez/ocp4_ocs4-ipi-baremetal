@@ -1,0 +1,18 @@
+---
+- name: Generate new-workers-secret.yaml manifest
+  template:
+    src: worker-secret.j2
+    dest: "{{ dir }}/new-workers-secret.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  tags: build-bmh-templates
+
+- name: Generate new-workers-baremetalhost.yaml manifest
+  template:
+    src: worker-baremetalhost.j2
+    dest: "{{ dir }}/new-workers-baremetalhost.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  tags: build-bmh-templates

@@ -1,0 +1,7 @@
+TYPE=Ethernet
+DEVICE={{ bond_nic2 }}
+BOOTPROTO=none
+ONBOOT=yes
+MASTER={{ bond_name }}
+SLAVE=yes
+MTU={{ bond_mtu }}

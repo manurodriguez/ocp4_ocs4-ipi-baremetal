@@ -1,0 +1,72 @@
+---
+- name: IPI on Baremetal Add Worker node
+  hosts: localhost
+  tasks:
+
+  - name: Add BMH Secret
+    k8s:
+      state: present
+      definition: "{{ lookup('file', '{{ dir }}/new-workers-secret.yaml') }}"
+    tags:
+      - add_node
+
+  - name: Add BMH CR
+    k8s:
+      state: present
+      definition: "{{ lookup('file', '{{ dir }}/new-workers-baremetalhost.yaml') }}"
+    tags:
+      - add_node
+
+  - name: Validate BHM is ready
+    command: "oc get bmh -n openshift-machine-api"
+    register: bmh_status
+    changed_when: false
+    until: 
+      - "'inspecting' not in bmh_status.stdout"
+      - "'provisioned' in bmh_status.stdout"
+      - "'ready' in bmh_status.stdout"
+    retries: 20
+    delay: 30
+    tags:
+      - add_node
+
+  - debug:
+      var: bmh_status.stdout
+    when:
+      - '"ready" in bmh_status.stdout'
+      - enable_debug is defined
+      - enable_debug
+    tags:
+      - add_node
+
+  - name: Get machineset name
+    shell: "oc get machinesets -n openshift-machine-api -o name | awk -F'/' '{print $2}'"
+    register: machineset_name
+    changed_when: false
+    tags:
+      - add_node
+
+  - debug:
+      var: machineset_name.stdout
+    when:
+      - enable_debug is defined
+      - enable_debug
+    tags:
+      - add_node
+
+  - name: Scale workers
+    shell: "oc scale --replicas=3 machineset {{ machineset_name.stdout }} -n openshift-machine-api"
+    tags:
+      - add_node
+
+  - name: Validate BHM is provisioned
+    command: "oc get bmh -n openshift-machine-api"
+    register: bmh_status_scale
+    changed_when: false
+    until: 
+      - "'provisioning' not in bmh_status_scale.stdout"
+      - "'provisioned' in bmh_status_scale.stdout"
+    retries: 25
+    delay: 60
+    tags:
+      - add_node

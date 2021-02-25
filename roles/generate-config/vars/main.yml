@@ -1,0 +1,13 @@
+---
+# vars file for generate-config
+pullsecret_file: "{{ dir }}/pull-secret.txt"
+roothint_list:
+  - deviceName
+  - hctl
+  - model
+  - vendor
+  - serialNumber
+  - minSizeGigabytes
+  - wwn
+  - rotational
+  - ''

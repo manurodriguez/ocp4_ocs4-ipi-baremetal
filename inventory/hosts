@@ -1,0 +1,67 @@
+[provisioner]
+provisioner.example.com ansible_hosts=127.0.0.1
+
+[all:vars]
+dir="{{ ansible_user_dir }}/clusterconfigs"
+clock_servers=["pool.ntp.org","clock.redhat.com"]
+
+bond_enable=true
+bond_name=bond0
+bond_mtu=9000
+bond_nic1=enp2s0
+bond_nic2=enp3s0
+bond_vlanid=none
+bond_options="mode=802.3ad miimon=100 lacp_rate=fast xmit_hash_policy=layer2+3"
+
+domain="example.com"
+cluster="ocp4"
+network_type="OVNKubernetes"
+ipv6_enabled=False
+ipv4_provisioning=True
+ipv4_baremetal=True
+machine_cidrnet="192.168.100.0/24"
+apivip="192.168.100.10"
+ingressvip="192.168.100.15"
+cluster_cidrnet="10.128.0.0/14"
+cluster_hostprefix="23"
+service_cidrnet="172.30.0.0/16"
+
+baremetal_bridge="baremetal"
+provisioning_bridge="provisioning"
+provisioning_nic="enp1s0"
+provisioning_subnet="192.168.10.0/24"
+provisioning_ip="192.168.10.2"
+
+bootstraposimage="http://192.168.100.1:8080/rhcos-46.82.202011260640-0-qemu.x86_64.qcow2.gz?sha256=99928ff40c2d8e3aa358d9bd453102e3d1b5e9694fb5d54febc56e275f35da51"
+clusterosimage="http://192.168.100.1:8080/rhcos-46.82.202011260640-0-openstack.x86_64.qcow2.gz?sha256=a8a28cfe5f5e5dadedb3442afcb447f85bddf2e82dcd558813a985a4d495782a"
+
+pullsecret='ADD-PULL-SECRET-HERE'
+
+redfish_hp_enabled=False
+redfish_dell_enabled=False
+ipmi_enabled=True
+disable_bmc_certificate_verification=false
+bootmode="uefi"
+architecture="amd64"
+hyperthreading="Enabled"
+disconnected_registry_enabled=True
+registry_dir_cert="/home/kni/registry/certs"
+local_registry="provisioner.example.com:5000"
+local_repo="ocp4/openshift4"
+
+http_proxy="http://192.168.100.1:3128"
+https_proxy="http://192.168.100.1:3128"
+no_proxy_list=".example.com"
+
+[masters]
+master-0 name=master-0 role=master ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6220 provision_mac=52:54:00:00:00:20 hardware_profile=default poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+master-1 name=master-1 role=master ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6221 provision_mac=52:54:00:00:00:21 hardware_profile=default poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+master-2 name=master-2 role=master ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6222 provision_mac=52:54:00:00:00:22 hardware_profile=default poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+
+[workers]
+worker-0 name=worker-0 role=worker ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6230 provision_mac=52:54:00:00:00:30 hardware_profile=unknown poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+worker-1 name=worker-1 role=worker ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6231 provision_mac=52:54:00:00:00:31 hardware_profile=unknown poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+
+[workers_post]
+worker-2 name=worker-2 role=worker ipmi_user=admin ipmi_password=password ipmi_address=192.168.100.1 ipmi_port=6232 provision_mac=52:54:00:00:00:32 hardware_profile=unknown poweroff=true root_device_hint="deviceName" root_device_hint_value="/dev/vda"
+

@@ -1,0 +1,7 @@
+---
+- name: Ansible playbooks to install OCS resources
+  gather_facts: false
+  hosts: localhost
+  roles:
+    - ocs-deploy
+

@@ -1,0 +1,17 @@
+---
+- name: Create OpenShift Manifest
+  shell: |
+    /usr/local/bin/openshift-baremetal-install --dir {{ dir }} create manifests
+  tags: manifests
+
+- name: Ensure the manifests dir is owned by {{ ansible_user }}
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  with_items:
+  - "{{ dir }}/openshift"
+  - "{{ dir }}/manifests"
+  tags: manifests

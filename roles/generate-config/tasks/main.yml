@@ -1,0 +1,18 @@
+---
+# tasks file for generate-config
+- include_tasks: 10_create-install-config.yml
+  tags: installconfig
+
+- include_tasks: 20_create_bmh_manifests.yml
+  when: "'workers_post' in groups"
+  tags: build-bmh-templates
+  
+- include_tasks: 30_create_manifest.yml
+  tags: manifests
+  
+- include_tasks: 40_create_bonding_mc_manifests.yml
+  when: (bond_enable|bool)
+  tags: build-bonding-mc-templates
+
+- include_tasks: 50_create_chrony_mc_manifests.yml
+  tags: build-chrony-mc-templates

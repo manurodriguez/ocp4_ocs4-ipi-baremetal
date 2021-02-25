@@ -1,0 +1,15 @@
+DEVICE={{ bond_name }}.{{ bond_vlanid }}
+NAME={{ bond_name }}.{{ bond_vlanid }}
+BOOTPROTO=dhcp
+ONBOOT=yes
+MTU={{ bond_mtu }}
+VLAN=yes
+DEFROUTE=yes
+IPV6INIT=no
+DHCPV6C=no
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+IPV4_DHCP_TIMEOUT=2147483647

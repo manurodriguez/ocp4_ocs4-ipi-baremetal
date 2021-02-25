@@ -1,0 +1,22 @@
+DEVICE={{ bond_name }}
+TYPE=Bond
+NAME={{ bond_name }}
+BONDING_MASTER=yes
+{% if bond_vlanid is defined and bond_vlanid != 'none' %}
+BOOTPROTO=none
+{% endif %}
+ONBOOT=yes
+MTU={{ bond_mtu }}
+BONDING_OPTS="{{ bond_options }}"
+AUTOCONNECT_SLAVES=yes
+IPV6INIT=no
+DHCPV6C=no
+{% if bond_vlanid is defined and bond_vlanid == 'none' %}
+BOOTPROTO=dhcp
+IPV6_AUTOCONF=no
+IPV6_DEFROUTE=no
+IPV6_PEERDNS=no
+IPV6_PEERROUTES=no
+IPV6_FAILURE_FATAL=no
+IPV4_DHCP_TIMEOUT=2147483647
+{% endif %}

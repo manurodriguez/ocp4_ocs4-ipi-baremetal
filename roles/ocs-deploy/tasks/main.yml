@@ -1,0 +1,167 @@
+---
+  - name: 01 Create a local-storage namespace
+    k8s:
+      name: local-storage
+      api_version: v1
+      kind: Namespace
+      state: present
+
+  - name: 02 Create operator group for local-storage
+    k8s:
+      state: present
+      definition: "{{ lookup('file', 'files/02-local-storage-operator.yaml') }}"
+      
+  - name: 03 Subscribe to local-storage operator
+    k8s:
+      state: present
+      definition: "{{ lookup('template', 'templates/03-local-storage-operator-subscribe.j2') }}"
+
+  - name: Validate local storage operator status
+    command: "oc get csv -n local-storage"
+    register: local_storage_operator_csv
+    changed_when: false
+    until: 
+      - "'Installing' not in local_storage_operator_csv.stdout"
+      - "'Pending' not in local_storage_operator_csv.stdout"
+      - "'Succeeded' in local_storage_operator_csv.stdout"
+    retries: 20
+    delay: 10
+
+  - debug:
+      var: local_storage_operator_csv.stdout
+    when:
+      - '"Succeeded" in local_storage_operator_csv.stdout'
+      - enable_debug is defined
+      - enable_debug
+
+  - name: Get existing nodes
+    shell: "oc get nodes -l node-role.kubernetes.io/worker -o name | awk -F'/' '{print $2}'"
+    register: node_list
+    changed_when: false
+
+  - name: Verify label in OCS nodes
+    shell: "oc get nodes -l cluster.ocs.openshift.io/openshift-storage= -o name | awk -F'/' '{print $2}'"
+    register: ocs_node_list
+    changed_when: false
+
+  - name: Add OCS labels to OCP worker nodes
+    command: "oc label node {{ item }} cluster.ocs.openshift.io/openshift-storage=''"
+    when: "item  not in ocs_node_list.stdout_lines"
+    loop: "{{ node_list.stdout_lines }}"
+
+  - name: 04 Include storage /dev/vdb
+    k8s:
+      state: present
+      definition: "{{ lookup('template', 'templates/04-local-storage-block.j2') }}"
+
+  - name: Validate pods from local-storage operator status are running
+    command: "oc get pods -n local-storage"
+    register: local_storage_operator_pod
+    changed_when: false
+    until: 
+      - "'ContainerCreating' not in local_storage_operator_pod.stdout"
+      - "'Init' not in local_storage_operator_pod.stdout"
+      - "'Pending' not in local_storage_operator_pod.stdout"
+    retries: 20
+    delay: 10
+
+  - debug:
+      var: local_storage_operator_pod.stdout
+    when: 
+      - '"Running" in local_storage_operator_pod.stdout'
+      - enable_debug is defined
+      - enable_debug
+
+
+  - name: 05 Create a openshift-storage namespace
+    k8s:
+      name: openshift-storage
+      api_version: v1
+      kind: Namespace
+      state: present
+
+  - name: 06 Create operator group for openshift-storage
+    k8s:
+      state: present
+      definition: "{{ lookup('file', 'files/06-openshift-storage-operatorgroup.yaml') }}"
+
+  - name: 07 Subscribe to OCS Operator
+    k8s:
+      state: present
+      definition: "{{ lookup('template', 'templates/07-openshift-storage-operator-subscribe.j2') }}"
+
+  - name: Validate ocs operator status
+    command: "oc get csv -n openshift-storage"
+    register: ocs_storage_operator_csv
+    changed_when: false
+    until: 
+      - "'Installing' not in ocs_storage_operator_csv.stdout"
+      - "'Pending' not in ocs_storage_operator_csv.stdout"
+      - "'Succeeded' in ocs_storage_operator_csv.stdout"
+    retries: 20
+    delay: 10
+
+  - debug:
+      var: ocs_storage_operator_csv.stdout
+    when: 
+      - '"Succeeded" in ocs_storage_operator_csv.stdout'
+      - enable_debug is defined
+      - enable_debug
+
+  - name: 08 Create openshift-storage cluster
+    k8s:
+      state: present
+      definition: "{{ lookup('template', 'templates/08-openshift-storage-cluster.j2') }}"
+
+  - name: Validate pods from openshift-storage operator status are running
+    command: "oc get pods -n openshift-storage"
+    register: ocs_storage_operator_pod
+    changed_when: false
+    until:
+      - "'ContainerCreating' not in ocs_storage_operator_pod.stdout"
+      - "'Init' not in ocs_storage_operator_pod.stdout"
+      - "'Pending' not in ocs_storage_operator_pod.stdout"
+    retries: 20
+    delay: 10
+
+  - debug:
+      var: ocs_storage_operator_pod.stdout
+    when: 
+      - '"Running" in ocs_storage_operator_pod.stdout'
+      - '"Completed" in ocs_storage_operator_pod.stdout'
+      - enable_debug is defined
+      - enable_debug
+
+  - name: Validate ocs cluster is ready
+    command: "oc get csv -n openshift-storage"
+    register: ocs_storage_operator_cluster
+    changed_when: false
+    until:
+      - "'Installing' not in ocs_storage_operator_cluster.stdout"
+      - "'Pending' not in ocs_storage_operator_cluster.stdout"
+      - "'Succeeded' in ocs_storage_operator_cluster.stdout"
+    retries: 20
+    delay: 10
+    tags:
+      - test
+
+  - debug:
+      var: ocs_storage_operator_cluster.stdout
+    when: 
+      - '"Succeeded" in ocs_storage_operator_cluster.stdout'
+      - enable_debug is defined
+      - enable_debug
+
+  - name: Deploy the Rook-Ceph toolbox pod
+    command:
+      cmd: |
+        oc patch OCSInitialization ocsinit -n openshift-storage --type json --patch '[{ "op": "replace", "path": "/spec/enableCephTools", "value": true }]'
+    register: ocs_storage_toolbox_patch
+    changed_when: "'no change' not in ocs_storage_toolbox_patch.stdout"
+    when: '"Succeeded" in ocs_storage_operator_cluster.stdout'
+
+  - debug:
+      var: ocs_storage_toolbox_patch.stdout
+    when: 
+      - enable_debug is defined
+      - enable_debug

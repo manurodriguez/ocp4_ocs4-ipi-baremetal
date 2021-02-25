@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ocs-operator
+  namespace: openshift-storage
+spec:
+  channel: "{{ ocs_storage_channel}}"
+  installPlanApproval: "{{ ocs_storage_installplan }}"
+  name: ocs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

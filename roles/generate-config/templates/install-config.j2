@@ -1,0 +1,139 @@
+apiVersion: v1
+baseDomain: {{ domain }}
+compute:
+- architecture: {{ architecture }}
+  hyperthreading: {{ hyperthreading }}
+  name: worker
+  platform: {}
+  replicas: {{ numworkers }}
+controlPlane:
+  architecture: {{ architecture }}
+  hyperthreading: {{ hyperthreading }}
+  name: master
+  platform:
+    baremetal: {}
+  replicas: {{ nummasters }}
+{% if disconnected_registry_enabled is defined and disconnected_registry_enabled|bool %}
+imageContentSources:
+- mirrors:
+  - {{ local_registry }}/{{ local_repo }}
+  source: quay.io/openshift-release-dev/ocp-release
+- mirrors:
+  - {{ local_registry }}/{{ local_repo }}
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+- mirrors:
+  - {{ local_registry }}/{{ local_repo }}
+  source: registry.svc.ci.openshift.org/ocp/release
+{% endif %}
+metadata:
+  creationTimestamp: null
+  name: {{ cluster }}
+networking:
+{% if ipv6_enabled|bool and not ipv4_baremetal|bool %}
+  clusterNetwork:
+  - cidr: fd01::/48
+    hostPrefix: 64
+  serviceNetwork:
+  - fd02::/112
+{% endif %}
+{% if ipv4_provisioning|bool and ipv4_baremetal|bool %}
+  clusterNetwork:
+  - cidr: {{ cluster_cidrnet }}
+    hostPrefix: {{ cluster_hostprefix }}
+  machineCIDR: {{ machine_cidrnet }}
+  machineNetwork:
+  - cidr: {{ machine_cidrnet }}
+  networkType: {{ network_type }}
+  serviceNetwork:
+  - {{ service_cidrnet }}
+{% endif %}
+platform:
+  baremetal:
+    apiVIP: {{ apivip }}
+{% if bootstraposimage is defined and bootstraposimage|length %}
+    bootstrapOSImage: {{ bootstraposimage }}
+{% endif %}
+{% if clusterosimage is defined and clusterosimage|length %}
+    clusterOSImage: {{ clusterosimage }}
+{% endif %}
+{% if baremetal_bridge != 'baremetal' %}
+    externalBridge: {{ baremetal_bridge }}
+{% endif %}
+    hosts:
+{% for host in groups['masters'] %}
+    - bmc:
+{% if redfish_hp_enabled|bool %}
+        address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/System.Embedded.1
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% elif redfish_dell_enabled|bool %}
+        address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/1
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% else %}
+        address: ipmi://{{ hostvars[host]['ipmi_address']|ipwrap }}:{{ hostvars[host]['ipmi_port']|default(623) }}
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% endif %}
+        password: {{ hostvars[host]['ipmi_password'] }}
+        username: {{ hostvars[host]['ipmi_user'] }}
+{% if bootmode is defined and bootmode == 'legacy' %}
+      bootMode: legacy
+{% endif %}
+      bootMACAddress: "{{ hostvars[host]['provision_mac'] }}"
+{% if 'hardware_profile' in hostvars[host] %}
+      hardwareProfile: {{ hostvars[host]['hardware_profile'] }}
+{% else %}
+      hardwareProfile: default
+{% endif %}
+      name: {{ hostvars[host]['inventory_hostname'] }}
+      role: {{ hostvars[host]['role'] }}
+{% if 'root_device_hint' in hostvars[host] and 'root_device_hint_value' in hostvars[host] and hostvars[host]['root_device_hint'] in roothint_list %}
+      rootDeviceHints:
+        {{ hostvars[host]['root_device_hint'] }}: {{ hostvars[host]['root_device_hint_value'] }}
+{% endif %}
+{% endfor %}
+{% if groups['workers'] is defined %}
+{% for host in groups['workers'] %}
+    - bmc:
+{% if redfish_hp_enabled|bool %}
+        address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/System.Embedded.1
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% elif redfish_dell_enabled|bool %}
+        address: redfish://{{ hostvars[host]['ipmi_address']|ipwrap }}/redfish/v1/Systems/1
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% else %}
+        address: ipmi://{{ hostvars[host]['ipmi_address']|ipwrap }}:{{ hostvars[host]['ipmi_port']|default(623) }}
+        disableCertificateVerification: {{ disable_bmc_certificate_verification }}
+{% endif %}
+        password: {{ hostvars[host]['ipmi_password'] }}
+        username: {{ hostvars[host]['ipmi_user'] }}
+{% if bootmode is defined and bootmode == 'legacy' %}
+      bootMode: legacy
+{% endif %}
+      bootMACAddress: "{{ hostvars[host]['provision_mac'] }}"
+{% if 'hardware_profile' in hostvars[host] %}
+      hardwareProfile: {{ hostvars[host]['hardware_profile'] }}
+{% else %}
+      hardwareProfile: unknown
+{% endif %}
+      name: {{ hostvars[host]['inventory_hostname'] }}
+      role: {{ hostvars[host]['role'] }}
+{% if 'root_device_hint' in hostvars[host] and 'root_device_hint_value' in hostvars[host] %}
+      rootDeviceHints:
+        {{ hostvars[host]['root_device_hint'] }}: {{ hostvars[host]['root_device_hint_value'] }}
+{% endif %}
+{% endfor %}
+{% endif %}
+    ingressVIP: {{ ingressvip }}
+    provisioningBridge: {{ provisioning_bridge }}
+    provisioningNetworkCIDR: {{ provisioning_subnet }}
+    provisioningNetworkInterface: {{ provisioning_nic }}
+{%if (http_proxy|length or https_proxy|length) %}
+proxy:
+  httpProxy: {{ http_proxy }}
+  httpsProxy: {{ https_proxy }}
+  noProxy: {{ no_proxy_list + ',' + provisioning_subnet + ',' + machine_cidrnet }}
+{% endif %}
+publish: External
+pullSecret: '{{ pullsecret }}'
+sshKey: '{{ key }}'
+additionalTrustBundle: |
+  {{ trustbundle | regex_replace('\n', '\n  ') }}

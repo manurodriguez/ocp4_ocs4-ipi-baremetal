@@ -1,0 +1,52 @@
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  creationTimestamp: null
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 11-worker-bonding-lacp-jumbo-vlan
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    storage:
+      files:
+      - contents:
+          source: data:;base64,{{ lookup('template', 'ifcfg-nic1.j2') | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ bond_nic1 }}
+        group:
+          name: root
+        overwrite: true
+        user:
+          name: root
+        mode: 0644
+      - contents:
+          source: data:;base64,{{ lookup('template', 'ifcfg-nic2.j2') | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ bond_nic2 }}
+        group:
+          name: root
+        overwrite: true
+        user:
+          name: root
+        mode: 0644
+      - contents:
+          source: data:;base64,{{ lookup('template', 'ifcfg-bond.j2') | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ bond_name }}
+        group:
+          name: root
+        overwrite: true
+        user:
+          name: root
+        mode: 0644
+{% if bond_vlanid is defined and bond_vlanid != 'none' %}
+      - contents:
+          source: data:;base64,{{ lookup('template', 'ifcfg-bond-vlanid.j2') | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ bond_name }}.{{ bond_vlanid }}
+        group:
+          name: root
+        overwrite: true
+        user:
+          name: root
+        mode: 0644
+{% endif %}

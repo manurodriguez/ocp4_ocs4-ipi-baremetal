@@ -1,0 +1,11 @@
+---
+local_storage_channel: "4.6"
+local_storage_installplan: Automatic
+ocs_storage_channel: "stable-4.6"
+ocs_storage_installplan: Automatic
+devices:
+  - "/dev/vdb"
+  - "/dev/vdc"
+  - "/dev/vdd"
+storage_ds_count: 3
+enable_debug: true
